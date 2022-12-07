@@ -10,10 +10,6 @@ while not inputFile.endOfFile():
     let elfPlay = ord(line[0]) - ord('A')
     let myPlay = ord(line[2]) - ord('X')
 
-    score += myPlay + 1
-    if elfPlay == myPlay:
-        score += 3
-    elif ((myPlay - elfPlay) +% 3) == 1:
-        score += 6
+    score += (myPlay + 1) + (((1 + myPlay - elfPlay) +% 3) * 3)
 
 echo score
