@@ -1,9 +1,10 @@
-import algorithm
 import sequtils
 import strformat
 import strscans
 import strutils
 import tables
+
+# Load the graph
 
 type Valve = object
     rate: int
@@ -27,17 +28,20 @@ for line in lines "input.txt":
 #  storing distances between the connections
 
 type CoreValve = object
+    label: string
     rate: int
     paths: Table[string, int]
 
-var coreValves: Table[string, CoreValve]
-var startValve: CoreValve
+var startValve: ref CoreValve
+var coreValves: seq[ref CoreValve]
 
 for label, valve in valves:
     if valve.rate == 0 and label != "AA": # Exception for AA since it's where we start
         continue
 
-    var coreValve: CoreValve
+    var coreValve: ref CoreValve
+    new(coreValve)
+    coreValve.label = label
     coreValve.rate = valve.rate
 
     # search the graph to find other core valves
@@ -64,71 +68,85 @@ for label, valve in valves:
     if label == "AA":
         startValve = coreValve
     else:
-        coreValves[label] = coreValve
+        coreValves.add coreValve
+
+type State = tuple[node: ref CoreValve, releaseRate: int, mins: int, totalReleased: int]
+
+func getNewState(stateCur: State, nextNode: ref CoreValve): State =
+    let moves = stateCur.node.paths[nextNode.label]
+    let time = moves + 1
+
+    var stateNew: State
+    
+    stateNew.mins = stateCur.mins + time
+    stateNew.totalReleased = stateCur.totalReleased + (stateCur.releaseRate * min(time, 30 - stateCur.mins))
+
+    if stateNew.mins < 30:
+        stateNew.node = nextNode
+        stateNew.releaseRate = stateCur.releaseRate + stateNew.node.rate
+    
+    return stateNew
+
+# Look for the best path
 
 var maxRelease = 0
-let allValves = coreValves.keys.toSeq.sorted
 
 block findmax:
-    var curRouteIs = @[0]
-
+    var curRoute: seq[ref CoreValve]
+    var routePostStates: seq[State]
     while true:
-        var curNode = startValve
-        var curReleaseRate = 0
-        var curMin = 1
-        var totalRelease = 0
+        var state: State
+        state.node = startValve
 
         block simulateAndExplore:
             var i = 0
+
+            if routePostStates.len > 0:
+                state = routePostStates[^1]
+                i = routePostStates.len
+
             while true:
-                if i > curRouteIs.high:
+                if i > curRoute.high:
                     # Try just adding another node
-                    for option in 0..allValves.high:
-                        if option notin curRouteIs:
-                            curRouteIs.add option
+                    for valve in coreValves:
+                        if valve notin curRoute:
+                            curRoute.add valve
                             break
                     # if we failed to add another node, break from the loop
-                    if i > curRouteIs.high:
+                    if i > curRoute.high:
                         break
 
-                let nodeName = allValves[curRouteIs[i]]
+                state = getNewState(state, curRoute[i])
+                if routePostStates.len == i:
+                    routePostStates.add state
+
+                if state.mins >= 30:
+                    break
+
                 i.inc
 
-                let moves = curNode.paths[nodeName]
-                let time = moves + 1
-
-                for m in 0..<time:
-                    totalRelease.inc curReleaseRate
-                    curMin.inc
-
-                    if curMin > 30:
-                        break simulateAndExplore
-
-                curNode = coreValves[nodeName]
-                curReleaseRate.inc curNode.rate
-
-            while curMin <= 30:
-                totalRelease.inc curReleaseRate
-                curMin.inc
+            if state.mins < 30:
+                state.totalReleased.inc state.releaseRate * (30 - state.mins)
+                state.mins = 30
         
-        if totalRelease > maxRelease: echo &"{curRouteIs.mapIt(allValves[it])} | {totalRelease}"
-        maxRelease = max(totalRelease, maxRelease)
+        if state.totalReleased > maxRelease: echo &"{curRoute.mapIt(it.label)} | {state.totalReleased}"
+        maxRelease = max(state.totalReleased, maxRelease)
 
         block findNextRoute:
             while true:
-                if curRouteIs.len == 0:
+                if curRoute.len == 0:
                     break findmax
 
-                let iTail = curRouteIs[^1]
-
-                if iTail < allValves.high:
-                    for option in iTail+1..allValves.high:
-                        if option notin curRouteIs:
-                            curRouteIs[^1] = option
+                let iTail = coreValves.find(curRoute[^1])
+                if iTail < coreValves.high:
+                    for valve in coreValves[iTail+1..^1]:
+                        if valve notin curRoute:
+                            curRoute[^1] = valve
+                            discard routePostStates.pop()
                             break findNextRoute
                 
                 # ran out of neighbors - try cycling the next one
-                discard curRouteIs.pop()
-
+                discard curRoute.pop()
+                discard routePostStates.pop()
 
 echo maxRelease
