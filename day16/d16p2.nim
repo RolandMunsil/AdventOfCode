@@ -5,6 +5,7 @@ import strformat
 import strscans
 import strutils
 import tables
+import times
 
 # Load the graph
 
@@ -77,80 +78,66 @@ for label, valve in valves:
 
 const nMins = 26
 
-type State = tuple[node: ref CoreValve, releaseRate: int, mins: int, totalReleased: int]
-
-func updateState(state: var State, nextNode: ref CoreValve) =
-    let moves = state.node.paths[nextNode.label]
-    let time = moves + 1
-
-    state.totalReleased.inc state.releaseRate * min(time, nMins - state.mins)
-    state.mins.inc time
-
-    if state.mins < nMins:
-        state.node = nextNode
-        state.releaseRate.inc state.node.rate
-
-proc tryRoute(curRoute: var seq[ref CoreValve], availableValves: seq[ref CoreValve]): State =
-    var state: State
-    state.node = startValve
-
-    var i = 0
-
-    while true:
-        if i > curRoute.high:
-            # Try just adding another node
-            for valve in availableValves:
-                if valve notin curRoute:
-                    curRoute.add valve
-                    break
-            # if we failed to add another node, break from the loop
-            if i > curRoute.high:
-                break
-
-        updateState(state, curRoute[i])
-        if state.mins >= nMins: break
-
-        i.inc
-
-    if state.mins < nMins:
-        state.totalReleased.inc state.releaseRate * (nMins - state.mins)
-        state.mins = nMins
-
-    return state
-
-func findNextRoute(curRoute: var seq[ref CoreValve], availableValves: seq[ref CoreValve]): bool =
-    while true:
-        if curRoute.len == 0:
-            return false
-
-        let iTail = availableValves.find(curRoute[^1])
-        if iTail < availableValves.high:
-            for valve in availableValves[iTail+1..^1]:
-                if valve notin curRoute:
-                    curRoute[^1] = valve
-                    return true
-    
-        # ran out of neighbors - try cycling the next one
-        discard curRoute.pop()
-
 proc findMaxRelease(availableValves: seq[ref CoreValve]): int = 
     var maxRelease = 0
-    var curRoute: seq[ref CoreValve]
-
+    var curRoute = @[startValve]
     while true:
-        let state = tryRoute(curRoute, availableValves)
-        
-        maxRelease = maxRelease.max(state.totalReleased)
+        var mins = 0
+        var totalReleased = 0
 
-        if not findNextRoute(curRoute, availableValves): break 
+        block simulateAndExplore:
+            var i = 0
+            while true:
+                if i == curRoute.high:
+                    # Try just adding another node
+                    for valve in availableValves:
+                        if valve notin curRoute:
+                            curRoute.add valve
+                            break
+                    # if we failed to add another node, break from the loop
+                    if i == curRoute.high:
+                        break
+
+                mins.inc curRoute[i].paths[curRoute[i+1].label] + 1
+
+                if mins < nMins:
+                    totalReleased.inc curRoute[i+1].rate * (nMins - mins)
+                else:
+                    break
+
+                i.inc
+        
+        maxRelease = max(totalReleased, maxRelease)
+
+        block findNextRoute:
+            while true:
+                if curRoute.len == 1:
+                    assert curRoute[0] == startValve
+                    return maxRelease
+
+                let iTail = availableValves.find(curRoute[^1])
+                if iTail < availableValves.high:
+                    for valve in availableValves[iTail+1..^1]:
+                        if valve notin curRoute:
+                            curRoute[^1] = valve
+                            break findNextRoute
+                
+                # ran out of neighbors - try cycling the next one
+                discard curRoute.pop()
+
     return maxRelease
+
+let t0 = epochTime()
 
 var max = 0
 
 for flags in 0..<2^(coreValves.len - 1):
+    if flags.countSetBits != coreValves.len div 2: # sketchy assumption? but it does work
+        continue
+
     var meValves: seq[ref CoreValve]
     var elValves: seq[ref CoreValve]
-
+    
     for i, valve in coreValves:
         if flags.testBit(i):
             meValves.add valve
@@ -160,4 +147,6 @@ for flags in 0..<2^(coreValves.len - 1):
     let sum = findMaxRelease(meValves) + findMaxRelease(elValves)
     if sum > max:
         max = sum
-        echo &"{flags}/{2^coreValves.len}: {sum}"
+        echo &"{flags}/{2^(coreValves.len - 1)}: {sum}"
+
+echo (epochTime() - t0).formatFloat(format = ffDecimal, precision = 3)

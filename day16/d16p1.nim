@@ -93,7 +93,7 @@ block findmax:
                             curRoute.add valve
                             break
                     # if we failed to add another node, break from the loop
-                    if i > curRoute.high:
+                    if i == curRoute.high:
                         break
 
                 mins.inc curRoute[i].paths[curRoute[i+1].label] + 1
