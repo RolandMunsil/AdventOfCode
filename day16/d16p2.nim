@@ -79,30 +79,22 @@ const nMins = 26
 
 type State = tuple[node: ref CoreValve, releaseRate: int, mins: int, totalReleased: int]
 
-func getNewState(stateCur: State, nextNode: ref CoreValve): State =
-    let moves = stateCur.node.paths[nextNode.label]
+func updateState(state: var State, nextNode: ref CoreValve) =
+    let moves = state.node.paths[nextNode.label]
     let time = moves + 1
 
-    var stateNew: State
-    
-    stateNew.mins = stateCur.mins + time
-    stateNew.totalReleased = stateCur.totalReleased + (stateCur.releaseRate * min(time, nMins - stateCur.mins))
+    state.totalReleased.inc state.releaseRate * min(time, nMins - state.mins)
+    state.mins.inc time
 
-    if stateNew.mins < nMins:
-        stateNew.node = nextNode
-        stateNew.releaseRate = stateCur.releaseRate + stateNew.node.rate
-    
-    return stateNew
+    if state.mins < nMins:
+        state.node = nextNode
+        state.releaseRate.inc state.node.rate
 
-proc tryRoute(curRoute: var seq[ref CoreValve], routePostStates: var seq[State], availableValves: seq[ref CoreValve]): State =
+proc tryRoute(curRoute: var seq[ref CoreValve], availableValves: seq[ref CoreValve]): State =
     var state: State
     state.node = startValve
 
     var i = 0
-
-    if routePostStates.len > 0:
-        state = routePostStates[^1]
-        i = routePostStates.len
 
     while true:
         if i > curRoute.high:
@@ -115,12 +107,8 @@ proc tryRoute(curRoute: var seq[ref CoreValve], routePostStates: var seq[State],
             if i > curRoute.high:
                 break
 
-        state = getNewState(state, curRoute[i])
-        if routePostStates.len == i:
-            routePostStates.add state
-
-        if state.mins >= nMins:
-            break
+        updateState(state, curRoute[i])
+        if state.mins >= nMins: break
 
         i.inc
 
@@ -130,7 +118,7 @@ proc tryRoute(curRoute: var seq[ref CoreValve], routePostStates: var seq[State],
 
     return state
 
-func findNextRoute(curRoute: var seq[ref CoreValve], routePostStates: var seq[State], availableValves: seq[ref CoreValve]): bool =
+func findNextRoute(curRoute: var seq[ref CoreValve], availableValves: seq[ref CoreValve]): bool =
     while true:
         if curRoute.len == 0:
             return false
@@ -140,43 +128,36 @@ func findNextRoute(curRoute: var seq[ref CoreValve], routePostStates: var seq[St
             for valve in availableValves[iTail+1..^1]:
                 if valve notin curRoute:
                     curRoute[^1] = valve
-                    routePostStates.setLen(curRoute.len - 1)
                     return true
     
         # ran out of neighbors - try cycling the next one
         discard curRoute.pop()
-        routePostStates.setLen(curRoute.len)
 
 proc findMaxRelease(availableValves: seq[ref CoreValve]): int = 
     var maxRelease = 0
     var curRoute: seq[ref CoreValve]
-    var routePostStates: seq[State]
 
     while true:
-        let state = tryRoute(curRoute, routePostStates, availableValves)
+        let state = tryRoute(curRoute, availableValves)
         
         maxRelease = maxRelease.max(state.totalReleased)
-        
-        if not findNextRoute(curRoute, routePostStates, availableValves):
-            break 
+
+        if not findNextRoute(curRoute, availableValves): break 
     return maxRelease
-
-
 
 var max = 0
 
-for flags in 0..<2^coreValves.len:
-    if countSetBits(flags) == coreValves.len div 2:
-        var meValves: seq[ref CoreValve]
-        var elValves: seq[ref CoreValve]
+for flags in 0..<2^(coreValves.len - 1):
+    var meValves: seq[ref CoreValve]
+    var elValves: seq[ref CoreValve]
 
-        for i, valve in coreValves:
-            if flags.testBit(i):
-                meValves.add valve
-            else:
-                elValves.add valve
+    for i, valve in coreValves:
+        if flags.testBit(i):
+            meValves.add valve
+        else:
+            elValves.add valve
 
-        let sum = findMaxRelease(meValves) + findMaxRelease(elValves)
-        if sum > max:
-            max = sum
-            echo &"{flags}/{2^coreValves.len}: {sum}"
+    let sum = findMaxRelease(meValves) + findMaxRelease(elValves)
+    if sum > max:
+        max = sum
+        echo &"{flags}/{2^coreValves.len}: {sum}"
