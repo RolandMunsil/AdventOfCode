@@ -3,6 +3,7 @@ import strformat
 import strscans
 import strutils
 import tables
+import times
 
 # Load the graph
 
@@ -70,43 +71,22 @@ for label, valve in valves:
     else:
         coreValves.add coreValve
 
-type State = tuple[node: ref CoreValve, releaseRate: int, mins: int, totalReleased: int]
-
-func getNewState(stateCur: State, nextNode: ref CoreValve): State =
-    let moves = stateCur.node.paths[nextNode.label]
-    let time = moves + 1
-
-    var stateNew: State
-    
-    stateNew.mins = stateCur.mins + time
-    stateNew.totalReleased = stateCur.totalReleased + (stateCur.releaseRate * min(time, 30 - stateCur.mins))
-
-    if stateNew.mins < 30:
-        stateNew.node = nextNode
-        stateNew.releaseRate = stateCur.releaseRate + stateNew.node.rate
-    
-    return stateNew
-
 # Look for the best path
+
+let t0 = epochTime()
 
 var maxRelease = 0
 
 block findmax:
-    var curRoute: seq[ref CoreValve]
-    var routePostStates: seq[State]
+    var curRoute = @[startValve]
     while true:
-        var state: State
-        state.node = startValve
+        var mins = 0
+        var totalReleased = 0
 
         block simulateAndExplore:
             var i = 0
-
-            if routePostStates.len > 0:
-                state = routePostStates[^1]
-                i = routePostStates.len
-
             while true:
-                if i > curRoute.high:
+                if i == curRoute.high:
                     # Try just adding another node
                     for valve in coreValves:
                         if valve notin curRoute:
@@ -116,25 +96,22 @@ block findmax:
                     if i > curRoute.high:
                         break
 
-                state = getNewState(state, curRoute[i])
-                if routePostStates.len == i:
-                    routePostStates.add state
+                mins.inc curRoute[i].paths[curRoute[i+1].label] + 1
 
-                if state.mins >= 30:
+                if mins < 30:
+                    totalReleased.inc curRoute[i+1].rate * (30 - mins)
+                else:
                     break
 
                 i.inc
-
-            if state.mins < 30:
-                state.totalReleased.inc state.releaseRate * (30 - state.mins)
-                state.mins = 30
         
-        if state.totalReleased > maxRelease: echo &"{curRoute.mapIt(it.label)} | {state.totalReleased}"
-        maxRelease = max(state.totalReleased, maxRelease)
+        if totalReleased > maxRelease: echo &"{curRoute.mapIt(it.label)} | {totalReleased}"
+        maxRelease = max(totalReleased, maxRelease)
 
         block findNextRoute:
             while true:
-                if curRoute.len == 0:
+                if curRoute.len == 1:
+                    assert curRoute[0] == startValve
                     break findmax
 
                 let iTail = coreValves.find(curRoute[^1])
@@ -142,11 +119,11 @@ block findmax:
                     for valve in coreValves[iTail+1..^1]:
                         if valve notin curRoute:
                             curRoute[^1] = valve
-                            discard routePostStates.pop()
                             break findNextRoute
                 
                 # ran out of neighbors - try cycling the next one
                 discard curRoute.pop()
-                discard routePostStates.pop()
 
 echo maxRelease
+
+echo (epochTime() - t0).formatFloat(format = ffDecimal, precision = 3)
