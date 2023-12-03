@@ -6,7 +6,10 @@
         {
             "label": "Run nim module",
             "command": "nim",
-            "args": ["r", "${fileBasename}"],
+            "args": [
+                "r", 
+                "-d:release", 
+                "${fileBasename}"],
             "options": {
                 "cwd": "${fileDirname}"
             },
@@ -14,6 +17,26 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
+            }
+        },
+        {
+            "label": "nim-build-debug",
+            "command": "nim",
+            "args": [
+                "c",
+                "--debugger:native",
+                "--stacktrace:on",
+                "-d:useMalloc",
+                "--mm:orc",
+                "${fileBasename}"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": false
             }
         }
     ]
