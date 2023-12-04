@@ -12,3 +12,7 @@ echo sum
 # one-liner (which i made after reviewing nim docs)
 
 echo lines("input.txt").toSeq.mapIt(it.filterIt(it.isDigit)).mapIt(parseInt(it[0] & it[^1])).foldl(a + b)
+
+# more efficient one-liner
+
+echo lines("input.txt").toSeq.mapIt(parseInt(it[it.find(Digits)] & it[it.rfind(Digits)])).foldl(a + b)
