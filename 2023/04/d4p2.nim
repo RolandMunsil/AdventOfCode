@@ -4,8 +4,8 @@ import sequtils
 
 let lines = lines("input.txt").toSeq
 var cardCt: seq[int]
-for i in 0..lines.len: cardCt.add 1
-cardCt[0] = 0
+cardCt.add(0) # Card 0 (which doesn't exist, but i want to make the indices match the card nums)
+for i in 0..<lines.len: cardCt.add 1
 
 for line in lines:
     var
