@@ -33,15 +33,12 @@ list.sort do (a, b: (string, int)) -> int:
     let aHand = a[0]
     let bHand = b[0]
 
-    let aRank = handRank(aHand)
-    let bRank = handRank(bHand)
+    result = cmp(handRank(aHand), handRank(bHand))
 
-    if aRank == bRank: 
+    if result == 0: 
         for i in 0..<5:
             result = cmpCards(aHand[i], bHand[i])
             if result != 0: return
-    else:
-        return cmp(aRank, bRank)
 
 var winnings = 0
 
