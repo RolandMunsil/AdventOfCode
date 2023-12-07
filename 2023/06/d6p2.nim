@@ -16,10 +16,4 @@ let nums =
 let time = nums[0]
 let dist = nums[1]
 
-var nWays = 0
-
-for msHold in 0..time:
-    let ms = (time - msHold) * msHold
-    if ms >= dist: nWays.inc
-
-echo nWays
+echo (0..time).countIt(((time - it) * it) > dist)

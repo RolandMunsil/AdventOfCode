@@ -12,8 +12,8 @@ for (time, dist) in zip(nums[0], nums[1]):
     var nWays = 0
 
     for msHold in 0..time:
-        let ms = (time - msHold) * msHold
-        if ms >= dist: nWays.inc
+        let mm = (time - msHold) * msHold
+        if mm > dist: nWays.inc
     
     nWaysTotal *= nWays
 
