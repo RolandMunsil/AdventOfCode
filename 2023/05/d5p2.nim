@@ -1,7 +1,6 @@
 import sequtils
 import strutils
 import strscans
-import strformat
 
 type Range = tuple[start, len: int]
 type RangeMap = tuple[destStart, srcStart, len: int]
