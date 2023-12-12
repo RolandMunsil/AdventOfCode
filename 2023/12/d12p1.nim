@@ -4,8 +4,9 @@ import strutils
 import bitops
 
 
+var sum = 0 
+
 for line in lines "input.txt":
-    var sum = 0 
     let (_, row, sizesStr) = line.scanTuple("$* $*$.")
     let sizes = sizesStr.split(',').mapIt(it.parseInt)
 
@@ -53,4 +54,4 @@ for line in lines "input.txt":
 
         if matches: sum.inc
 
-    echo sum
+echo sum
