@@ -5,7 +5,7 @@ import tables
 
 func usedSpace(bin: seq[int]): int = bin.foldl(a + b, 0) + bin.len - 1
 
-var tabs = ""
+# var tabs = ""
 
 var table: Table[(seq[int], string), int]
 
@@ -30,7 +30,7 @@ proc nArrangements(sizes: seq[int], row: string): int =
 
     result = 0
 
-    tabs &= '\t'
+    # tabs &= '\t'
 
     for iChStart in iChLowStart..iChHighStart:
         let iChEnd = iChStart + maxSize - 1
@@ -59,7 +59,7 @@ proc nArrangements(sizes: seq[int], row: string): int =
 
         result += thisResult
 
-    tabs = tabs[0..tabs.high-1]
+    # tabs = tabs[0..tabs.high-1]
 
     table[key] = result
     # debugEcho tabs,row, " + ", sizes, " => ", result
