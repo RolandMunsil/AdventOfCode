@@ -53,16 +53,20 @@ class Pos
     [x, y].hash
   end
 
-  def eql?(other_pos)
-    x == other_pos.x && y == other_pos.y
-  end
-
   def ==(other_pos)
     x == other_pos.x && y == other_pos.y
   end
+  
+  def eql?(other_pos)
+    self == other_pos
+  end
+
+  def to_s
+    "(#{x}, #{y})"       
+  end
 
   def inspect
-    "(#{x}, #{y})"
+    to_s
   end
 end
 
