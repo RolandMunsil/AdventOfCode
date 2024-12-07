@@ -46,15 +46,15 @@ class Pos
   end
 
   def +(other_pos)
-    return Pos.new(x + other_pos.x, y + other_pos.y)
+    return Pos.new(@x + other_pos.x, @y + other_pos.y)
   end
 
   def hash # annoyingly this is required for uniq to work - though docs dont say so!
-    [x, y].hash
+    [@x, @y].hash
   end
 
   def ==(other_pos)
-    x == other_pos.x && y == other_pos.y
+    @x == other_pos.x && @y == other_pos.y
   end
   
   def eql?(other_pos)
@@ -62,7 +62,7 @@ class Pos
   end
 
   def to_s
-    "(#{x}, #{y})"       
+    "(#{@x}, #{@y})"       
   end
 
   def inspect
