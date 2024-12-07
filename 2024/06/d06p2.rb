@@ -4,16 +4,13 @@ class Grid
   end
 
   
-  def []=(x, y)
-    @aryary[y][x]
-  end
-
-  def [](x, y, val)
-    @aryary[y][x] = val
-  end
-
-  def char_at(pos)
-    @aryary[pos.y][pos.x]
+  def [](*args)
+    case args
+    in [Pos => pos]
+      @aryary[pos.y][pos.x]
+    in [Integer => x, Integer => y]
+      @aryary[y][x]
+    end
   end
 
   def pos_valid?(pos)
@@ -78,7 +75,7 @@ start_dir = Pos.new(0, -1)
 start_pos = nil
 
 grid.each_pos do |pos|
-  if grid.char_at(pos) == '^'
+  if grid[pos] == '^'
     start_pos = pos
     break
   end
@@ -88,7 +85,7 @@ loop_count = 0
 
 grid.each_pos do |pos_new_obstruction|
   next if pos_new_obstruction == start_pos
-  next if grid.char_at(pos_new_obstruction) == '#' 
+  next if grid[pos_new_obstruction] == '#' 
 
   cur_dir = start_dir
   cur_pos = start_pos
@@ -100,7 +97,7 @@ grid.each_pos do |pos_new_obstruction|
     next_pos = cur_pos + cur_dir
     break if !grid.pos_valid?(next_pos)
 
-    if next_pos == pos_new_obstruction || grid.char_at(cur_pos + cur_dir) == '#'
+    if next_pos == pos_new_obstruction || grid[cur_pos + cur_dir] == '#'
       cur_dir = Pos.new(-cur_dir.y, cur_dir.x)
 
       if pos_dir_list.include? [cur_pos, cur_dir]
