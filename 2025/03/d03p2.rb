@@ -4,18 +4,16 @@ def best_joltage(bank, digits_needed)
   return 0 if digits_needed > bank.length
   return bank.max if digits_needed == 1
 
-  digits_with_indices = bank[..-digits_needed].each_with_index.group_by { |digit, index| digit }.each_pair.sort { |p1, p2| p2[0] <=> p1[0] }
+  9.downto(1) do |digit|
+    first_index = bank[..-digits_needed].index digit
+    next if first_index.nil?
+    return digit if digits_needed == 1
 
-  digits_with_indices.each do |digit, indices|
-    subjoltages = indices.map do |_, index| 
-      best_joltage(bank[(index+1)..], digits_needed - 1)
-    end
+    next_start_index = first_index + 1
+    additional_digits_needed = digits_needed - 1
+    next if (bank.length - next_start_index) < additional_digits_needed
 
-    best_subjoltage = subjoltages.max
-
-    if best_subjoltage > 0
-      return best_subjoltage + (digit * 10.pow(digits_needed - 1))
-    end
+    return best_joltage(bank[next_start_index..], additional_digits_needed) + (digit * 10.pow(digits_needed - 1))
   end
 end
 
